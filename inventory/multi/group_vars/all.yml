@@ -1,0 +1,28 @@
+---
+rke2_install_version:  v1.33.5+rke2r1
+cluster_rke2_config:
+  selinux: true
+
+ansible_user: root
+
+# AIRGAP images
+## OS
+rke2_install_local_tarball_path: "{{ playbook_dir }}/files/rke2/rke2.linux-amd64.tar.gz"
+## PACKAGES
+rke2_images_local_tarball_path:
+  - "{{ playbook_dir }}/files/images/rke2-images.linux-amd64.tar.zst"
+
+#BUILD TEMP
+rke2_tmp_dest_dir: "/var/lib/temp"
+
+# SELINUX
+## RKE2
+rke2_selinux_local_rpm_path: "{{ playbook_dir }}/files/selinux/rke2-selinux-0.21-1.el9.noarch.rpm"
+## ContainerD
+contd_selinux_local_rpm_path: "{{ playbook_dir }}/files/selinux/container-selinux-2.240.0-1.el10.noarch.rpm"
+
+## Calico CNI
+rke2_calico_selinux_local_file_path: "{{ playbook_dir }}/files/selinux/calico-selinux-1.0-1.el9.noarch.rpm"
+
+#Add for airgap installs, that are connected.
+disable_yum_gpg_check: true

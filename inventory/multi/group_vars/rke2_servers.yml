@@ -1,0 +1,40 @@
+---
+#CONFIG
+rke2_pod_security_admission_config_file_path: "{{ playbook_dir }}/files/pod-security-admission-config.yaml"
+rke2_audit_policy_config_file_path: "{{ playbook_dir }}/files/audit-policy.yaml"
+rke2_manifest_config_directory: "{{ playbook_dir }}/files/pre-deploy-manifests/"
+rke2_manifest_config_post_run_directory: "{{ playbook_dir }}/files/post-deploy-manifests/"
+
+#RKE2 Metal LB CONFIG
+rke2_metallb_k8s_ip: "192.0.2.189"
+rke2_k8s_fqdn: "k8s.multi.mycluster.internal"
+
+#RKE2 SERVER CONFIG
+group_rke2_config:
+  cni:
+    - calico
+  disable-kube-proxy: false
+  disable:
+    - rke2-ingress-nginx
+  profile: cis
+  pod-security-admission-config-file: /etc/rancher/rke2/pod-security-admission-config.yaml
+  audit-policy-file: /etc/rancher/rke2/audit-policy.yaml
+  kube-apiserver-arg:
+    - audit-policy-file=/etc/rancher/rke2/audit-policy.yaml
+    - audit-log-path=/var/lib/rancher/rke2/server/logs/audit.log
+  tls-san:
+    - "{{ rke2_k8s_fqdn }}"
+    - "{{ rke2_metallb_k8s_ip }}"
+
+  #Metrics Exposure
+  kube-proxy-arg:
+    - metrics-bind-address=0.0.0.0
+
+  kube-controller-manager:
+      - bind-address=0.0.0.0
+
+  kube-scheduler:
+      - bind-address=0.0.0.0
+
+  etcd-expose-metrics: true
+ 
