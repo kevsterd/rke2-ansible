@@ -1,0 +1,29 @@
+---
+# --- VALIDATION START ---
+- name: "Pre-flight: Validate MetalLB variables are defined"
+  ansible.builtin.assert:
+    that:
+      - rke2_metallb_k8s_ip is defined
+      - rke2_metallb_k8s_ip | length > 0
+    fail_msg: >
+      STOPPING: 'rke2_metallb_k8s_ip'
+      are missing or empty in your inventory.
+# --- VALIDATION END ---
+
+- name: Ensure RKE2 manifests directory exists
+  ansible.builtin.file:
+    path: /var/lib/rancher/rke2/server/manifests
+    state: directory
+    mode: '0755'
+
+- name: Deploy MetalLB Manifest
+  ansible.builtin.template:
+    src: ../templates/metallb-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/metallb-config.yaml
+    mode: '0644'
+
+- name: Deploy EndPoint Copier K8S Service Manifest
+  ansible.builtin.template:
+    src: ../templates/epc-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/epc-config.yaml
+    mode: '0644'

@@ -1,0 +1,114 @@
+---
+# RKE2 Cluster Shutdown Playbook
+# This playbook performs a graceful shutdown of the entire RKE2 cluster
+# Order: Agents/Workers first, then Servers/Masters
+
+- name: Shutdown RKE2 Agent Nodes
+  hosts: rke2_agents
+  become: true
+  serial: 1
+  tasks:
+    - name: Display agent node being shut down
+      ansible.builtin.debug:
+        msg: "Shutting down RKE2 agent node: {{ inventory_hostname }}"
+
+    - name: Check if RKE2 agent service exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/rke2-agent.service
+      register: rke2_agent_service
+
+    - name: Stop RKE2 agent service
+      ansible.builtin.systemd:
+        name: rke2-agent
+        state: stopped
+      when: rke2_agent_service.stat.exists
+      ignore_errors: true
+
+    - name: Wait for RKE2 agent to stop
+      ansible.builtin.wait_for:
+        timeout: 30
+      when: rke2_agent_service.stat.exists
+
+    - name: Verify agent service is stopped
+      ansible.builtin.systemd:
+        name: rke2-agent
+        state: stopped
+      when: rke2_agent_service.stat.exists
+      register: service_status
+      failed_when: false
+
+    - name: Display agent shutdown status
+      ansible.builtin.debug:
+        msg: "Agent {{ inventory_hostname }} shutdown completed"
+
+- name: Shutdown RKE2 Server Nodes
+  hosts: rke2_servers
+  become: true
+  serial: 1
+  tasks:
+    - name: Display server node being shut down
+      ansible.builtin.debug:
+        msg: "Shutting down RKE2 server node: {{ inventory_hostname }}"
+
+    - name: Check if RKE2 server service exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/rke2-server.service
+      register: rke2_server_service
+
+    - name: Drain node before shutdown (optional - kubectl must be available)
+      ansible.builtin.shell: |
+        export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+        /var/lib/rancher/rke2/bin/kubectl drain {{ inventory_hostname }} \
+          --ignore-daemonsets \
+          --delete-emptydir-data \
+          --force \
+          --grace-period=120 \
+          --timeout=5m
+      when: 
+        - rke2_server_service.stat.exists
+        - drain_nodes | default(false) | bool
+      ignore_errors: true
+      register: drain_result
+
+    - name: Stop RKE2 server service
+      ansible.builtin.systemd:
+        name: rke2-server
+        state: stopped
+      when: rke2_server_service.stat.exists
+      ignore_errors: true
+
+    - name: Wait for RKE2 server to stop
+      ansible.builtin.wait_for:
+        timeout: 45
+      when: rke2_server_service.stat.exists
+
+    - name: Verify server service is stopped
+      ansible.builtin.systemd:
+        name: rke2-server
+        state: stopped
+      when: rke2_server_service.stat.exists
+      register: service_status
+      failed_when: false
+
+    - name: Display server shutdown status
+      ansible.builtin.debug:
+        msg: "Server {{ inventory_hostname }} shutdown completed"
+
+- name: Cluster Shutdown Summary
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display shutdown completion message
+      ansible.builtin.debug:
+        msg: |
+          ================================
+          RKE2 Cluster Shutdown Complete
+          ================================
+          All agent and server nodes have been shut down.
+          
+          To restart the cluster, run:
+          ansible-playbook startup.yml -i inventory/hosts.yml
+          
+          Or manually start services:
+          - Servers: sudo systemctl start rke2-server
+          - Agents: sudo systemctl start rke2-agent

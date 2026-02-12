@@ -1,0 +1,144 @@
+---
+# RKE2 Cluster Startup Playbook
+# This playbook performs a graceful startup of the entire RKE2 cluster
+# Order: Servers/Masters first, then Agents/Workers
+
+- name: Startup RKE2 Server Nodes
+  hosts: rke2_servers
+  become: true
+  serial: 1
+  tasks:
+    - name: Display server node being started
+      ansible.builtin.debug:
+        msg: "Starting RKE2 server node: {{ inventory_hostname }}"
+
+    - name: Check if RKE2 server service exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/rke2-server.service
+      register: rke2_server_service
+
+    - name: Ensure RKE2 server service is enabled
+      ansible.builtin.systemd:
+        name: rke2-server
+        enabled: true
+      when: rke2_server_service.stat.exists
+
+    - name: Start RKE2 server service
+      ansible.builtin.systemd:
+        name: rke2-server
+        state: started
+      when: rke2_server_service.stat.exists
+
+    - name: Wait for RKE2 server to be ready
+      ansible.builtin.wait_for:
+        timeout: 60
+      when: rke2_server_service.stat.exists
+
+    - name: Check if server is ready (kubectl available)
+      ansible.builtin.shell: |
+        export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+        /var/lib/rancher/rke2/bin/kubectl get nodes {{ inventory_hostname }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      register: node_ready
+      until: node_ready.stdout == "True"
+      retries: 30
+      delay: 10
+      when: rke2_server_service.stat.exists
+      ignore_errors: true
+
+    - name: Display server startup status
+      ansible.builtin.debug:
+        msg: "Server {{ inventory_hostname }} startup completed - Ready: {{ node_ready.stdout | default('unknown') }}"
+      when: rke2_server_service.stat.exists
+
+    - name: Wait between server startups
+      ansible.builtin.pause:
+        seconds: 30
+      when: 
+        - rke2_server_service.stat.exists
+        - inventory_hostname != groups['rke2_servers'][-1]
+
+- name: Startup RKE2 Agent Nodes
+  hosts: rke2_agents
+  become: true
+  serial: 3
+  tasks:
+    - name: Display agent node being started
+      ansible.builtin.debug:
+        msg: "Starting RKE2 agent node: {{ inventory_hostname }}"
+
+    - name: Check if RKE2 agent service exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/rke2-agent.service
+      register: rke2_agent_service
+
+    - name: Ensure RKE2 agent service is enabled
+      ansible.builtin.systemd:
+        name: rke2-agent
+        enabled: true
+      when: rke2_agent_service.stat.exists
+
+    - name: Start RKE2 agent service
+      ansible.builtin.systemd:
+        name: rke2-agent
+        state: started
+      when: rke2_agent_service.stat.exists
+
+    - name: Wait for RKE2 agent to start
+      ansible.builtin.wait_for:
+        timeout: 45
+      when: rke2_agent_service.stat.exists
+
+    - name: Display agent startup status
+      ansible.builtin.debug:
+        msg: "Agent {{ inventory_hostname }} startup completed"
+
+- name: Verify Cluster Health
+  hosts: rke2_servers[0]
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for all nodes to be ready
+      ansible.builtin.shell: |
+        export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+        /var/lib/rancher/rke2/bin/kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}'
+      register: all_nodes_status
+      until: all_nodes_status.stdout.find("False") == -1
+      retries: 20
+      delay: 15
+      ignore_errors: true
+
+    - name: Display cluster node status
+      ansible.builtin.debug:
+        msg: "{{ all_nodes_status.stdout_lines }}"
+      when: all_nodes_status is defined
+
+    - name: Get cluster component status
+      ansible.builtin.shell: |
+        export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+        /var/lib/rancher/rke2/bin/kubectl get componentstatuses 2>/dev/null || echo "Component status unavailable in recent k8s versions"
+      register: component_status
+      ignore_errors: true
+
+    - name: Display component status
+      ansible.builtin.debug:
+        msg: "{{ component_status.stdout_lines }}"
+      when: component_status is defined
+
+- name: Cluster Startup Summary
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display startup completion message
+      ansible.builtin.debug:
+        msg: |
+          ================================
+          RKE2 Cluster Startup Complete
+          ================================
+          All server and agent nodes have been started.
+          
+          To check cluster status, run:
+          kubectl get nodes
+          kubectl get pods --all-namespaces
+          
+          To shutdown the cluster, run:
+          ansible-playbook shutdown.yml -i inventory/hosts.yml

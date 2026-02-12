@@ -1,0 +1,21 @@
+---
+
+- name: Create temporary directory for RKE2 airgap RPMS for Calico
+  ansible.builtin.file:
+    path: "{{ rke2_tmp_dest_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy Calico rke2-selinux RPM from control machine to target node
+  ansible.builtin.copy:
+    src: "{{ rke2_calico_selinux_local_file_path }}"
+    dest: "{{ rke2_tmp_dest_dir }}/{{ rke2_calico_selinux_local_file_path | basename }}"
+    mode: '0644'
+
+- name: Install Calico rke2-selinux from local RPM file
+  ansible.builtin.package:
+    # The 'name' parameter takes the *absolute path* to the RPM file on the TARGET NODE
+    name: "{{ rke2_tmp_dest_dir }}/{{ rke2_calico_selinux_local_file_path | basename }}"
+    state: present
+    disable_gpg_check: "{{ disable_yum_gpg_check | d(omit) }}"
+

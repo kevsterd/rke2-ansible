@@ -1,0 +1,28 @@
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: kubernetes-vip-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - {{ rke2_metallb_k8s_ip }}/32
+  serviceAllocation:
+    priority: 100
+    namespaces:
+      - default
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: metallb-k8s-pool
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - kubernetes-vip-pool
+
+
+
+
+
+

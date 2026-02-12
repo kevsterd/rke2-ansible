@@ -1,0 +1,32 @@
+#Locations that airgap binaries may be stored
+files/images/*.zst
+
+files/rke2/*.gz
+files/rke2/*.tar
+
+#Wildcard versions
+*.tgz
+*.zst
+*.gz
+*.tar
+
+# Vault files
+*vault*
+*.vault
+group_vars/*/vault.yml
+host_vars/*/vault.yml
+
+# Sensitive variable files
+group_vars/*/secrets.yml
+host_vars/*/secrets.yml
+
+# Environment-specific configs
+*.pem
+*.key
+
+#Usual catches
+*.retry
+.cache/
+
+venv/
+.venv/

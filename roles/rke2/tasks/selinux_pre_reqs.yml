@@ -1,0 +1,36 @@
+---
+
+- name: Create temporary directory for RKE2 airgap RPMS
+  ansible.builtin.file:
+    path: "{{ rke2_tmp_dest_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy containerd-selinux RPM from control machine to target node
+  ansible.builtin.copy:
+    src: "{{ contd_selinux_local_rpm_path }}"
+    dest: "{{ rke2_tmp_dest_dir }}/{{ contd_selinux_local_rpm_path  | basename }}"
+    mode: '0644'
+
+- name: Copy rke2-selinux RPM from control machine to target node
+  ansible.builtin.copy:
+    src: "{{ rke2_selinux_local_rpm_path }}"
+    dest: "{{ rke2_tmp_dest_dir }}/{{ rke2_selinux_local_rpm_path | basename }}"
+    mode: '0644'
+
+
+- name: Install containerd-selinux from local RPM file
+  ansible.builtin.package:
+    # The 'name' parameter takes the *absolute path* to the RPM file on the TARGET NODE
+    name: "{{ rke2_tmp_dest_dir }}/{{ contd_selinux_local_rpm_path  | basename }}"
+    state: present
+    disable_gpg_check: yes
+    disablerepo: "*"
+
+- name: Install rke2-selinux from local RPM file
+  ansible.builtin.package:
+    # The 'name' parameter takes the *absolute path* to the RPM file on the TARGET NODE
+    name: "{{ rke2_tmp_dest_dir }}/{{ rke2_selinux_local_rpm_path | basename }}"
+    state: present
+    disable_gpg_check: yes
+    disablerepo: "*"

@@ -1,0 +1,17 @@
+---
+# - name: endpoint-copier-operator
+#   namespace: metallb-system
+#   releaseName: endpoint-copier-operator
+#   repo: https://suse-edge.github.io/charts
+#   version: 0.3.0
+#   valuesFile: eco-values.yml
+#   includeCRDs: true
+
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: endpoint-copier-operator
+  namespace: metallb-system
+spec:
+  chart: https://suse-edge.github.io/charts/assets/endpoint-copier-operator/endpoint-copier-operator-0.3.0.tgz
+  targetNamespace: metallb-system

@@ -1,0 +1,7 @@
+./files/images/reg-ui.2.5.7.tar.gz
+./files/images/registry.2.8.3.tar.gz
+./files/images/rke2-images.linux-amd64.tar.zst
+./files/selinux/rke2-selinux-0.21-1.el9.noarch.rpm
+./files/selinux/container-selinux-2.240.0-1.el10.noarch.rpm
+./files/selinux/calico-selinux-1.0-1.el9.noarch.rpm
+./files/rke2/rke2.linux-amd64.tar.gz
