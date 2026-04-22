@@ -1,0 +1,27 @@
+---
+
+- name: Ensure RKE2 manifests directory exists on servers
+  ansible.builtin.file:
+    path: /var/lib/rancher/rke2/server/manifests
+    state: directory
+    mode: '0755'
+  when:
+    - inventory_hostname in groups['rke2_servers']
+
+- name: Ensure RKE2 static charts directory exists
+  ansible.builtin.file:
+    path: /var/lib/rancher/rke2/charts
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Copy airgap Helm Charts to RKE2 static charts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /var/lib/rancher/rke2/charts/
+    mode: '0644'
+  with_items:
+    - "{{ helm_charts_local_path }}"
+  when:
+    - helm_charts_local_path!= []

@@ -1,0 +1,43 @@
+---
+# RKE2 Cluster Power Off Playbook
+# Powers off all nodes at the OS level - agents first, then servers
+
+- name: Power Off RKE2 Agent Nodes
+  hosts: rke2_agents
+  become: true
+  serial: 1
+  tasks:
+    - name: Display agent node being powered off
+      ansible.builtin.debug:
+        msg: "Powering off agent node: {{ inventory_hostname }}"
+
+    - name: Power off agent node
+      ansible.builtin.command: poweroff
+      async: 1
+      poll: 0
+
+- name: Power Off RKE2 Server Nodes
+  hosts: rke2_servers
+  become: true
+  serial: 1
+  tasks:
+    - name: Display server node being powered off
+      ansible.builtin.debug:
+        msg: "Powering off server node: {{ inventory_hostname }}"
+
+    - name: Power off server node
+      ansible.builtin.command: poweroff
+      async: 1
+      poll: 0
+
+- name: Cluster Power Off Summary
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display power off completion message
+      ansible.builtin.debug:
+        msg: |
+          ================================
+          RKE2 Cluster Power Off Initiated
+          ================================
+          All agent and server nodes have been sent the poweroff command.

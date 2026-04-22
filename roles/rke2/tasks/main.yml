@@ -127,6 +127,11 @@
   when:
     - inventory_hostname in groups['rke2_servers']
 
+- name: Configure airgap local directories
+  ansible.builtin.include_tasks: configure_airgap.yml
+  when:
+    - inventory_hostname in groups['rke2_servers']
+
 - name: Configure MetalLB
   ansible.builtin.include_tasks: configure_metallb.yml
   when:

@@ -10,12 +10,6 @@
       are missing or empty in your inventory.
 # --- VALIDATION END ---
 
-- name: Ensure RKE2 manifests directory exists
-  ansible.builtin.file:
-    path: /var/lib/rancher/rke2/server/manifests
-    state: directory
-    mode: '0755'
-
 - name: Deploy MetalLB Manifest
   ansible.builtin.template:
     src: ../templates/metallb-config.yaml.j2

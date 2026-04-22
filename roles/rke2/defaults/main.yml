@@ -5,6 +5,7 @@ rke2_install_local_tarball_path: ""
 rke2_install_tarball_url: ""
 rke2_images_urls: []
 rke2_images_local_tarball_path: []
+helm_charts_local_path: []
 
 #SELinux related
 rke2_tmp_dest_dir: ""
